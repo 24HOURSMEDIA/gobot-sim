@@ -34,13 +34,12 @@ func main() {
 		work,
 	)
 
-	// hook in the simulator. It links keypress '1' to a simulation of a button press and release
-	// on pin 11 (GPIO 17)
+	// hook in the simulator.
 	sim := raspi_sim.NewGobotSimulator(r)
 	sim.Verbosity(gobot_sim.VERBOSITY_VVV)
 	sim.EnterSimulationMode([]string{ledGPIO})
 
-	// a simple watcher
+	// a simple watcher for the pin that on a real board has a led attached
 	sim.WatchPin(ledPin, func(ev gobot_sim.PinChangedEvent) error {
 		fmt.Println("LED BLINKS")
 		return nil
