@@ -63,3 +63,5 @@ func main() {
 	robot.Start()
 }
 ```
+
+![Example](resources/doc/example.png "Example output")

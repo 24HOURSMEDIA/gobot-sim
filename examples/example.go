@@ -6,8 +6,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/24hoursmedia/gobot_sim"
-	"github.com/24hoursmedia/gobot_sim/raspi_sim"
+	"github.com/24hoursmedia/gobot-sim"
+	"github.com/24hoursmedia/gobot-sim/raspi_sim"
 	"gobot.io/x/gobot"
 	"gobot.io/x/gobot/drivers/gpio"
 	"gobot.io/x/gobot/platforms/raspi"

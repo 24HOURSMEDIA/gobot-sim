@@ -2,7 +2,7 @@ package raspi_sim
 
 import (
 	"fmt"
-	"github.com/24hoursmedia/gobot_sim"
+	"github.com/24hoursmedia/gobot-sim"
 	"gobot.io/x/gobot"
 	"gobot.io/x/gobot/platforms/keyboard"
 	"gobot.io/x/gobot/platforms/raspi"
