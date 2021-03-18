@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	GPIOACTION_UNDEFINED = iota
-	GPIOACTION_ON
-	GPIOACTION_OFF
-	GPIOACTION_TOGGLE
-	GPIOACTION_BUTTONPRESS
+	PWACTION_UNDEFINED = iota
+	PWACTION_ON
+	PWACTION_OFF
+	PWACTION_TOGGLE
+	PWACTION_BUTTONPRESS
 )
 
 type PinFuncs struct {
@@ -57,11 +57,11 @@ func (ac PinWriteAction) OffValue() byte {
 
 func (ac *PinWriteAction) Execute() error {
 	switch ac.action {
-	case GPIOACTION_ON:
+	case PWACTION_ON:
 		return ac.pinFuncs.On(ac)
-	case GPIOACTION_OFF:
+	case PWACTION_OFF:
 		return ac.pinFuncs.Off(ac)
-	case GPIOACTION_TOGGLE:
+	case PWACTION_TOGGLE:
 		val, _ := ac.pinFuncs.Read(ac)
 		//if err != nil {
 		//	return err
@@ -73,7 +73,7 @@ func (ac *PinWriteAction) Execute() error {
 			return ac.pinFuncs.On(ac)
 		}
 		return ac.pinFuncs.Off(ac)
-	case GPIOACTION_BUTTONPRESS:
+	case PWACTION_BUTTONPRESS:
 		ac.pinFuncs.On(ac)
 		time.Sleep(time.Millisecond * 300)
 		return ac.pinFuncs.Off(ac)

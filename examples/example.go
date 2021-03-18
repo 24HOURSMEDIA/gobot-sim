@@ -40,7 +40,7 @@ func main() {
 	sim := raspi_sim.NewGobotSimulator(r)
 	sim.Verbosity(gobot_sim.VERBOSITY_VVV)
 	sim.EnterSimulationMode([]string{"17"})
-	sim.MapKeyPressToGPIOAction('1', "11", gobot_sim.GPIOACTION_BUTTONPRESS)
+	sim.MapKeyPressToGPIOAction('1', "11", gobot_sim.PWACTION_BUTTONPRESS)
 	go sim.Run()
 
 	// start the 'real' robot
