@@ -20,7 +20,7 @@ func main() {
 	ledPin := "11"
 	ledGPIO := "17"
 
-	// set up gobopt
+	// set up gobot
 	r := raspi.NewAdaptor()
 	led := gpio.NewLedDriver(r, ledPin)
 	work := func() {
@@ -39,6 +39,14 @@ func main() {
 	sim := raspi_sim.NewGobotSimulator(r)
 	sim.Verbosity(gobot_sim.VERBOSITY_VVV)
 	sim.EnterSimulationMode([]string{ledGPIO})
+
+	// a simple watcher
+	sim.WatchPin(ledPin, func(ev gobot_sim.PinChangedEvent) error {
+		fmt.Println("LED BLINKS")
+		return nil
+	})
+
+	// a more advanced, generic watcher
 	ledWatcher, _ := sim.WatchPin(ledPin, func(ev gobot_sim.PinChangedEvent) error {
 		source := ev.Source().(*gobot_sim.PinWatcher)
 		fmt.Printf("%s, pin %s, state = %d\n",
@@ -49,6 +57,7 @@ func main() {
 		return nil
 	})
 	ledWatcher.SetName("LED blink watcher")
+
 	go sim.Run()
 
 	// start the 'real' robot
