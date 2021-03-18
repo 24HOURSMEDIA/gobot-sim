@@ -25,7 +25,7 @@ func NewGobotSimulator(adapter *raspi.Adaptor) *GobotSimulator {
 	sim.gpioKeymap = map[rune]gobot_sim.PinWriteAction{}
 	sim.adapter = adapter
 	sim.name = "GobotSim"
-	sim.logger.Prefix = "GOBOTSIM"
+	sim.logger.Prefix = sim.name
 	return sim
 }
 
