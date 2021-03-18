@@ -17,7 +17,7 @@ activate the button press by linking it to a keyboard shortcut.
 Run this on your Mac or Linux machine.
 You can toggle the button by pressing the '1' key.
 
-```
+```go
 package main
 
 import (
