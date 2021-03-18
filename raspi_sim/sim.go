@@ -8,14 +8,17 @@ import (
 	"gobot.io/x/gobot/platforms/raspi"
 	"gobot.io/x/gobot/sysfs"
 	"strconv"
+	"time"
 )
 
 type GobotSimulator struct {
-	gpioKeymap map[rune]gobot_sim.PinWriteAction
-	verbosity  int
-	adapter    *raspi.Adaptor
-	logger     gobot_sim.VerbosityLogger
-	name       string
+	name          string
+	gpioKeymap    map[rune]gobot_sim.PinWriteAction
+	gpioWatchers  []*gobot_sim.PinWatcher
+	verbosity     int
+	adapter       *raspi.Adaptor
+	logger        gobot_sim.VerbosityLogger
+	watchInterval time.Duration
 }
 
 // NewGobotSimulator creates a bot that makes your machine
@@ -23,9 +26,11 @@ type GobotSimulator struct {
 func NewGobotSimulator(adapter *raspi.Adaptor) *GobotSimulator {
 	sim := &GobotSimulator{}
 	sim.gpioKeymap = map[rune]gobot_sim.PinWriteAction{}
+	//sim.gpioWatchers = []*gobot_sim.PinWatcher{}
 	sim.adapter = adapter
 	sim.name = "GobotSim"
-	sim.logger.Prefix = sim.name
+	sim.logger.Prefix = sim.name + " "
+	sim.watchInterval = time.Millisecond * 10
 	return sim
 }
 
@@ -66,44 +71,61 @@ func (sim *GobotSimulator) MapKeyPressToGPIOAction(key rune, pin string, action 
 	sim.logger.Debug("Mapping key %s to pin %s", strconv.QuoteRune(key), pin)
 
 	pinFuncs := &gobot_sim.PinFuncs{
-		On:   sim.actionPinOn,
-		Off:  sim.actionPinOff,
-		Read: sim.actionPinRead,
+		Write: sim.pinWrite,
+		Read:  sim.pinRead,
 	}
 
 	sim.gpioKeymap[key] = gobot_sim.NewPinWriteAction(pin, action, pinFuncs)
 	return nil
 }
 
-// actionPinOn is the handler passed to PinWriteActions so it has access to the local context
-func (sim *GobotSimulator) actionPinOn(ac *gobot_sim.PinWriteAction) error {
-	return sim.adapter.DigitalWrite(ac.Pin(), ac.OnValue())
+// WatchPin intercepts writes to a pin and calls a function if the value changed
+func (sim *GobotSimulator) WatchPin(pin string, handler gobot_sim.PinChangedFunc) (*gobot_sim.PinWatcher, error) {
+	watchFuncs := &gobot_sim.WatchFuncs{
+		Read:    sim.pinRead,
+		Changed: handler,
+	}
+	watcher := gobot_sim.NewPinWatcher(pin, watchFuncs)
+	sim.gpioWatchers = append(sim.gpioWatchers, watcher)
+	sim.logger.Debug("Added watcher for pin %s", pin)
+	return watcher, nil
 }
 
-// actionPinOff is the handler passed to PinWriteActions so it has access to the local context
-func (sim *GobotSimulator) actionPinOff(ac *gobot_sim.PinWriteAction) error {
-	return sim.adapter.DigitalWrite(ac.Pin(), ac.OffValue())
+// pinWrite is the handler passed to PinWrite/ReadActions so it has access to the local context
+func (sim *GobotSimulator) pinWrite(pin string, v byte) error {
+	return sim.adapter.DigitalWrite(pin, v)
 }
 
-// actionPinRead is the handler passed to PinWriteActions so it has access to the local context
-func (sim *GobotSimulator) actionPinRead(ac *gobot_sim.PinWriteAction) (int, error) {
-	return sim.adapter.DigitalRead(ac.Pin())
+// pinRead is the handler passed to PinWriteActions so it has access to the local context
+func (sim *GobotSimulator) pinRead(pin string) (int, error) {
+	return sim.adapter.DigitalRead(pin)
 }
 
 // Run sets up the simulator bot and starts it
 func (sim *GobotSimulator) Run() error {
 	keys := keyboard.NewDriver()
 	work := func() {
-		keys.On(keyboard.Key, func(data interface{}) {
-			key := data.(keyboard.KeyEvent)
-			if action, ok := sim.gpioKeymap[rune(key.Key)]; ok {
-				sim.logger.Debug("Key %s pressed, Pin %s, Action %d", strconv.QuoteRune(rune(key.Key)), action.Pin(), action.Action())
-				err := action.Execute()
-				if err != nil {
-					sim.logger.Error("Error %v", err)
+		if len(sim.gpioKeymap) > 0 {
+			sim.logger.Debug("Setup keypress handlers")
+			keys.On(keyboard.Key, func(data interface{}) {
+				key := data.(keyboard.KeyEvent)
+				if action, ok := sim.gpioKeymap[rune(key.Key)]; ok {
+					sim.logger.Debug("Key %s pressed, Pin %s, Action %d", strconv.QuoteRune(rune(key.Key)), action.Pin(), action.Action())
+					err := action.Execute()
+					if err != nil {
+						sim.logger.Error("Error %v", err)
+					}
 				}
-			}
-		})
+			})
+		}
+		if len(sim.gpioWatchers) > 0 {
+			sim.logger.Debug("Setup watchers")
+			gobot.Every(sim.watchInterval, func() {
+				for _, w := range sim.gpioWatchers {
+					w.Observe()
+				}
+			})
+		}
 	}
 
 	robot := gobot.NewRobot(sim.name,
@@ -113,6 +135,5 @@ func (sim *GobotSimulator) Run() error {
 	)
 	sim.logger.Info("Waiting for keypress")
 	robot.Start()
-
 	return nil
 }

@@ -14,9 +14,8 @@ const (
 )
 
 type PinFuncs struct {
-	On   func(action *PinWriteAction) error
-	Off  func(action *PinWriteAction) error
-	Read func(action *PinWriteAction) (int, error)
+	Write PinWriteFunc
+	Read  PinReadFunc
 }
 
 type PinWriteAction struct {
@@ -34,49 +33,44 @@ func NewPinWriteAction(pin string, action int, pinFuncs *PinFuncs) PinWriteActio
 		pin:      pin,
 		action:   action,
 		pinFuncs: pinFuncs,
-		onValue:  0x01,
-		offValue: 0x00,
+		onValue:  PIN_ON,
+		offValue: PIN_OFF,
 	}
 }
 
+// Pin returns the pin number
 func (ac PinWriteAction) Pin() string {
 	return ac.pin
 }
 
+// Pin returns the action constant (i.e. PWACTION_TOGGLE etc)
 func (ac PinWriteAction) Action() int {
 	return ac.action
 }
 
-func (ac PinWriteAction) OnValue() byte {
-	return ac.onValue
-}
-
-func (ac PinWriteAction) OffValue() byte {
-	return ac.offValue
-}
-
+// Execute is called by the owner when an acton on
+// a pin must be executed
 func (ac *PinWriteAction) Execute() error {
 	switch ac.action {
 	case PWACTION_ON:
-		return ac.pinFuncs.On(ac)
+		return ac.pinFuncs.Write(ac.pin, ac.onValue)
 	case PWACTION_OFF:
-		return ac.pinFuncs.Off(ac)
+		return ac.pinFuncs.Write(ac.pin, ac.offValue)
 	case PWACTION_TOGGLE:
-		val, _ := ac.pinFuncs.Read(ac)
+		val, _ := ac.pinFuncs.Read(ac.pin)
 		//if err != nil {
 		//	return err
 		//}
 		var byteNum byte = 0x00
 		byteNum = byte(val)
 		if byteNum == ac.offValue {
-
-			return ac.pinFuncs.On(ac)
+			return ac.pinFuncs.Write(ac.pin, ac.onValue)
 		}
-		return ac.pinFuncs.Off(ac)
+		return ac.pinFuncs.Write(ac.pin, ac.offValue)
 	case PWACTION_BUTTONPRESS:
-		ac.pinFuncs.On(ac)
+		ac.pinFuncs.Write(ac.pin, ac.onValue)
 		time.Sleep(time.Millisecond * 300)
-		return ac.pinFuncs.Off(ac)
+		return ac.pinFuncs.Write(ac.pin, ac.offValue)
 	}
 	return errors.New("action not handled")
 }
