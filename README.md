@@ -1,4 +1,6 @@
-# gobot_sim
+# gobot-sim
+
+**Simulate GPIO pin inputs for [Gobot](https://gobot.io) with your keyboard**  
 
 Gobot-Sim can simulate Raspberry Pi GPIO pin inputs on a local development
 machine such as a Mac.
