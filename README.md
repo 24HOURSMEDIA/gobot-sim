@@ -37,7 +37,7 @@ func main() {
 
 	// set up rasberry pi gobot with a button attached to pin 11 (GPIO17)
 	r := raspi.NewAdaptor()
-	button := gpio.NewButtonDriver(r, "11", time.Millisecond * 100)
+	button := gpio.NewButtonDriver(r, "11", time.Millisecond*100)
 	work := func() {
 		button.On(gpio.ButtonPush, func(data interface{}) {
 			fmt.Println("button pressed")
@@ -57,8 +57,8 @@ func main() {
 	// on pin 11 (GPIO 17)
 	sim := raspi_sim.NewGobotSimulator(r)
 	sim.Verbosity(gobot_sim.VERBOSITY_VVV)
-	sim.EnterSimulationMode([]string{"17"})
 	sim.MapKeyPressToGPIOAction('1', "11", gobot_sim.PWACTION_BUTTONPRESS)
+	sim.EnterSimulationMode()
 	go sim.Run()
 
 	// start the 'real' robot

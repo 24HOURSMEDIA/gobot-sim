@@ -39,8 +39,8 @@ func main() {
 	// on pin 11 (GPIO 17)
 	sim := raspi_sim.NewGobotSimulator(r)
 	sim.Verbosity(gobot_sim.VERBOSITY_VVV)
-	sim.EnterSimulationMode([]string{"17"})
 	sim.MapKeyPressToGPIOAction('1', "11", gobot_sim.PWACTION_BUTTONPRESS)
+	sim.EnterSimulationMode()
 	go sim.Run()
 
 	// start the 'real' robot

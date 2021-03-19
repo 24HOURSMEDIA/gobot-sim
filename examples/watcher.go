@@ -18,7 +18,6 @@ func main() {
 	fmt.Println("Setting up simulator - watcher")
 
 	ledPin := "11"
-	ledGPIO := "17"
 
 	// set up gobot
 	r := raspi.NewAdaptor()
@@ -37,8 +36,6 @@ func main() {
 	// hook in the simulator.
 	sim := raspi_sim.NewGobotSimulator(r)
 	sim.Verbosity(gobot_sim.VERBOSITY_VVV)
-	sim.EnterSimulationMode([]string{ledGPIO})
-
 	// a simple watcher for the pin that on a real board has a led attached
 	sim.WatchPin(ledPin, func(ev gobot_sim.PinChangedEvent) error {
 		fmt.Println("LED BLINKS")
@@ -56,7 +53,7 @@ func main() {
 		return nil
 	})
 	ledWatcher.SetName("LED blink watcher")
-
+	sim.EnterSimulationMode()
 	go sim.Run()
 
 	// start the 'real' robot
