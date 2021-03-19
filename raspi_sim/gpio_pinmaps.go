@@ -5,13 +5,20 @@ import "errors"
 // GPIOToPinMap maps gpio numbers to pins for a Raspberry revision
 type PinToGPIOMap struct {
 	mapping map[string]string
+	// board version, (1,2,3)
+	revision string
 }
 
-func NewPinToGPIOMap(mapping map[string]string) *PinToGPIOMap {
+func NewPinToGPIOMap(revision string, mapping map[string]string) *PinToGPIOMap {
 	m := &PinToGPIOMap{
-		mapping: mapping,
+		mapping:  mapping,
+		revision: revision,
 	}
 	return m
+}
+
+func (m *PinToGPIOMap) Revision() string {
+	return m.revision
 }
 
 func (m *PinToGPIOMap) ToGPIO(pin string) (string, error) {
@@ -23,7 +30,7 @@ func (m *PinToGPIOMap) ToGPIO(pin string) (string, error) {
 }
 
 // RPI3GPIOPinMap is a mapping for the latest 40 pin raspberry revisions
-var RPI3PinGPIOMap = NewPinToGPIOMap(map[string]string{
+var RPI3PinGPIOMap = NewPinToGPIOMap("3", map[string]string{
 	// pin 3 -> gpio 2
 	"3":  "2",
 	"5":  "3",

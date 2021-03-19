@@ -6,16 +6,22 @@ import (
 	"github.com/24hoursmedia/gobot-sim/hybrid_sysfs"
 	"github.com/rs/zerolog/log"
 	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/drivers/gpio"
 	"gobot.io/x/gobot/platforms/keyboard"
-	"gobot.io/x/gobot/platforms/raspi"
 	"gobot.io/x/gobot/sysfs"
 	"strconv"
 	"time"
 )
 
+type RaspiAdaptor interface {
+	gpio.DigitalReader
+	gpio.DigitalWriter
+	gobot.Adaptor
+}
+
 type GobotSimulator struct {
 	name          string
-	adapter       *raspi.Adaptor
+	adapter       RaspiAdaptor
 	pinToGPIOMap  *PinToGPIOMap
 	gpioKeymap    map[rune]*gobot_sim.PinWriteAction
 	gpioWatchers  []*gobot_sim.PinWatcher
@@ -25,7 +31,7 @@ type GobotSimulator struct {
 
 // NewGobotSimulator creates a bot that makes your machine
 // behave like a raspberry pi in some ways
-func NewGobotSimulator(adapter *raspi.Adaptor) *GobotSimulator {
+func NewGobotSimulator(adapter RaspiAdaptor) *GobotSimulator {
 	sim := &GobotSimulator{}
 	sim.name = "GobotSim"
 	sim.pinToGPIOMap = RPI3PinGPIOMap
@@ -33,7 +39,7 @@ func NewGobotSimulator(adapter *raspi.Adaptor) *GobotSimulator {
 	sim.adapter = adapter
 	sim.watchInterval = time.Millisecond * 20
 	sim.usedGPIOPins = make(map[string]bool)
-	log.Debug().Str("name", sim.name).Msg("Created new Gobot-Sim")
+	log.Debug().Str("name", sim.name).Msg("Created new gobot-sim")
 	return sim
 }
 
