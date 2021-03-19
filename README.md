@@ -21,7 +21,10 @@ For example, consider a push button which should be wired to GPIO 11.
 With Gobot-sim, you can run your application in the terminal, and
 activate the button press by linking it to a keyboard shortcut.
 
-## Example
+## Examples
+
+* [Simulate a button connected to a GPIO pin with your keyboard](examples/button.go)
+* [Log the status from a led to the console instead of sending it to real GPIO](examples/led.go)
 
 Run this on your Mac or Linux machine.
 You can toggle the button by pressing the '1' key.
