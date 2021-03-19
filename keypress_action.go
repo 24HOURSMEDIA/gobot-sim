@@ -69,7 +69,7 @@ func (ac *PinWriteAction) Execute() error {
 		return ac.pinFuncs.Write(ac.pin, ac.offValue)
 	case PW_ACTION_BUTTONPRESS:
 		ac.pinFuncs.Write(ac.pin, ac.onValue)
-		time.Sleep(time.Millisecond * 300)
+		time.Sleep(time.Millisecond * 100)
 		return ac.pinFuncs.Write(ac.pin, ac.offValue)
 	}
 	return errors.New("action not handled")
