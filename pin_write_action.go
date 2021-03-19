@@ -28,8 +28,8 @@ type PinWriteAction struct {
 	pinFuncs *PinFuncs
 }
 
-func NewPinWriteAction(pin string, action int, pinFuncs *PinFuncs) PinWriteAction {
-	return PinWriteAction{
+func NewPinWriteAction(pin string, action int, pinFuncs *PinFuncs) *PinWriteAction {
+	return &PinWriteAction{
 		pin:      pin,
 		action:   action,
 		pinFuncs: pinFuncs,

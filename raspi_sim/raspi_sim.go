@@ -1,6 +1,7 @@
 package raspi_sim
 
 import (
+	"errors"
 	"fmt"
 	"github.com/24hoursmedia/gobot-sim"
 	"github.com/24hoursmedia/gobot-sim/hybrid_sysfs"
@@ -16,7 +17,7 @@ type GobotSimulator struct {
 	name          string
 	adapter       *raspi.Adaptor
 	pinToGPIOMap  *PinToGPIOMap
-	gpioKeymap    map[rune]gobot_sim.PinWriteAction
+	gpioKeymap    map[rune]*gobot_sim.PinWriteAction
 	gpioWatchers  []*gobot_sim.PinWatcher
 	watchInterval time.Duration
 	usedGPIOPins  map[string]bool
@@ -29,7 +30,7 @@ func NewGobotSimulator(adapter *raspi.Adaptor) *GobotSimulator {
 	sim := &GobotSimulator{}
 	sim.name = "GobotSim"
 	sim.pinToGPIOMap = RPI3PinGPIOMap
-	sim.gpioKeymap = map[rune]gobot_sim.PinWriteAction{}
+	sim.gpioKeymap = map[rune]*gobot_sim.PinWriteAction{}
 	sim.adapter = adapter
 	sim.logger.Prefix = sim.name + " "
 	sim.watchInterval = time.Millisecond * 10
@@ -47,9 +48,9 @@ func (sim *GobotSimulator) SetPinToGPIOMap(pinToGPIO *PinToGPIOMap) {
 	sim.pinToGPIOMap = pinToGPIO
 }
 
-// EnterSimulationMode sets up the local machine and hooks into the file system
+// enterSimulationMode sets up the local machine and hooks into the file system
 // to intercept specific gpio pins. Note that these are GPIO pin numbers, not board pin numbers
-func (sim *GobotSimulator) EnterSimulationMode() {
+func (sim *GobotSimulator) enterSimulationMode() {
 	fs := hybrid_sysfs.NewHybridFs(
 		&sysfs.NativeFilesystem{},
 		sysfs.NewMockFilesystem([]string{}),
@@ -64,45 +65,45 @@ func (sim *GobotSimulator) EnterSimulationMode() {
 	sysfs.SetSyscall(&hybrid_sysfs.HybridSyscall{})
 }
 
-// MapKeyPressToGPIOAction maps a key press to a specific action on a pin, for example
-// to turn it on or simulate a button press and release
-func (sim *GobotSimulator) MapKeyPressToGPIOAction(key rune, pin string, action int) error {
-	sim.logger.Debug("Mapping key %s to pin %s", strconv.QuoteRune(key), pin)
-
+// usePinForGPIO tells the simulator to use a pin for GPIO
+// this runs the pin through the simulator instead of the HW board
+func (sim *GobotSimulator) usePinForGPIO(pin string) error {
 	// translate pin to gpio num and map it so we know it is used
 	gpioPin, pinErr := sim.pinToGPIOMap.ToGPIO(pin)
 	if pinErr != nil {
 		return pinErr
 	}
 	sim.usedGPIOPins[gpioPin] = true
+	return nil
+}
 
-	pinFuncs := &gobot_sim.PinFuncs{
-		Write: sim.pinWrite,
-		Read:  sim.pinRead,
+// MapKeyPressToGPIOAction maps a key press to a specific action on a pin, for example
+// to turn it on or simulate a button press and release
+func (sim *GobotSimulator) MapKeyPressToGPIOAction(key rune, pin string, action int) (*gobot_sim.PinWriteAction, error) {
+	sim.logger.Debug("Mapping key %s to pin %s", strconv.QuoteRune(key), pin)
+
+	usePinErr := sim.usePinForGPIO(pin)
+	if usePinErr != nil {
+		return nil, usePinErr
 	}
 
+	pinFuncs := &gobot_sim.PinFuncs{Write: sim.pinWrite, Read: sim.pinRead}
 	sim.gpioKeymap[key] = gobot_sim.NewPinWriteAction(pin, action, pinFuncs)
-	return nil
+	return sim.gpioKeymap[key], nil
 }
 
 // WatchPin intercepts writes to a pin and calls a function if the value changed
 func (sim *GobotSimulator) WatchPin(pin string, handler gobot_sim.PinChangedFunc) (*gobot_sim.PinWatcher, error) {
+	sim.logger.Debug("Add watcher for pin %s", pin)
 
-	// translate pin to gpio num and map it so we know it is used
-	gpioPin, pinErr := sim.pinToGPIOMap.ToGPIO(pin)
-	if pinErr != nil {
-
-		return nil, pinErr
+	usePinErr := sim.usePinForGPIO(pin)
+	if usePinErr != nil {
+		return nil, usePinErr
 	}
-	sim.usedGPIOPins[gpioPin] = true
 
-	watchFuncs := &gobot_sim.WatchFuncs{
-		Read:    sim.pinRead,
-		Changed: handler,
-	}
+	watchFuncs := &gobot_sim.WatchFuncs{Read: sim.pinRead, Changed: handler}
 	watcher := gobot_sim.NewPinWatcher(pin, watchFuncs)
 	sim.gpioWatchers = append(sim.gpioWatchers, watcher)
-	sim.logger.Debug("Added watcher for pin %s", pin)
 	return watcher, nil
 }
 
@@ -118,14 +119,17 @@ func (sim *GobotSimulator) pinRead(pin string) (int, error) {
 
 // Run sets up the simulator bot and starts it
 func (sim *GobotSimulator) Run() error {
-	sim.EnterSimulationMode()
+	sim.enterSimulationMode()
 	go sim.goRun()
 	return nil
 }
 
+func Stop() error {
+	return errors.New("Not supported")
+}
+
 // goRun is the go routine for running
 func (sim *GobotSimulator) goRun() error {
-
 	keys := keyboard.NewDriver()
 	work := func() {
 		if len(sim.gpioKeymap) > 0 {
@@ -158,5 +162,9 @@ func (sim *GobotSimulator) goRun() error {
 	)
 	sim.logger.Info("Waiting for keypress")
 	robot.Start()
+	return nil
+}
+
+func Close() error {
 	return nil
 }
