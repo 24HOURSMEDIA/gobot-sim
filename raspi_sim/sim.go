@@ -3,6 +3,7 @@ package raspi_sim
 import (
 	"fmt"
 	"github.com/24hoursmedia/gobot-sim"
+	"github.com/24hoursmedia/gobot-sim/hybrid_sysfs"
 	"gobot.io/x/gobot"
 	"gobot.io/x/gobot/platforms/keyboard"
 	"gobot.io/x/gobot/platforms/raspi"
@@ -53,16 +54,18 @@ func (sim *GobotSimulator) AllGPIOPins() []string {
 // EnterSimulationMode sets up the local machine and hooks into the file system
 // to intercept specific gpio pins. Note that these are GPIO pin numbers, not board pin numbers
 func (sim *GobotSimulator) EnterSimulationMode(gpioPins []string) {
-	var files = make([]string, 0)
-	files = append(files, "/sys/class/gpio/export")
-	files = append(files, "/sys/class/gpio/unexport")
+	fs := hybrid_sysfs.NewHybridFs(
+		&sysfs.NativeFilesystem{},
+		sysfs.NewMockFilesystem([]string{}),
+	)
+	fs.AddMockablePath("/sys/class/gpio/export")
+	fs.AddMockablePath("/sys/class/gpio/unexport")
 	for _, gpioPinNum := range gpioPins {
-		files = append(files, fmt.Sprintf("/sys/class/gpio/gpio%s/direction", gpioPinNum))
-		files = append(files, fmt.Sprintf("/sys/class/gpio/gpio%s/value", gpioPinNum))
+		fs.AddMockablePath(fmt.Sprintf("/sys/class/gpio/gpio%s/direction", gpioPinNum))
+		fs.AddMockablePath(fmt.Sprintf("/sys/class/gpio/gpio%s/value", gpioPinNum))
 	}
-	fs := sysfs.NewMockFilesystem(files)
 	sysfs.SetFilesystem(fs)
-	sysfs.SetSyscall(&sysfs.MockSyscall{})
+	sysfs.SetSyscall(&hybrid_sysfs.HybridSyscall{})
 }
 
 // MapKeyPressToGPIOAction maps a key press to a specific action on a pin, for example
