@@ -14,27 +14,23 @@ import (
 
 type GobotSimulator struct {
 	name          string
-	pinToGPIO     *PinToGPIOMap
+	adapter       *raspi.Adaptor
+	pinToGPIOMap  *PinToGPIOMap
 	gpioKeymap    map[rune]gobot_sim.PinWriteAction
 	gpioWatchers  []*gobot_sim.PinWatcher
-	verbosity     int
-	adapter       *raspi.Adaptor
-	logger        gobot_sim.VerbosityLogger
 	watchInterval time.Duration
-	autoMapPins   bool
-
-	usedGPIOPins map[string]bool
+	usedGPIOPins  map[string]bool
+	logger        gobot_sim.VerbosityLogger
 }
 
 // NewGobotSimulator creates a bot that makes your machine
 // behave like a raspberry pi in some ways
 func NewGobotSimulator(adapter *raspi.Adaptor) *GobotSimulator {
 	sim := &GobotSimulator{}
-	sim.pinToGPIO = RPI3PinGPIOMap
-	sim.gpioKeymap = map[rune]gobot_sim.PinWriteAction{}
-	//sim.gpioWatchers = []*gobot_sim.PinWatcher{}
-	sim.adapter = adapter
 	sim.name = "GobotSim"
+	sim.pinToGPIOMap = RPI3PinGPIOMap
+	sim.gpioKeymap = map[rune]gobot_sim.PinWriteAction{}
+	sim.adapter = adapter
 	sim.logger.Prefix = sim.name + " "
 	sim.watchInterval = time.Millisecond * 10
 	sim.usedGPIOPins = make(map[string]bool)
@@ -46,9 +42,9 @@ func (sim *GobotSimulator) Verbosity(verbosity int) {
 	sim.logger.Verbosity = verbosity
 }
 
-// SetPinToGPIO sets a pin mapping to gpio numbers for the platform (defaults to RPI3 mapping).
-func (sim *GobotSimulator) SetPinToGPIO(pinToGPIO *PinToGPIOMap) {
-	sim.pinToGPIO = pinToGPIO
+// SetPinToGPIOMap sets a pin mapping to gpio numbers for the platform (defaults to RPI3 mapping).
+func (sim *GobotSimulator) SetPinToGPIOMap(pinToGPIO *PinToGPIOMap) {
+	sim.pinToGPIOMap = pinToGPIO
 }
 
 // EnterSimulationMode sets up the local machine and hooks into the file system
@@ -74,7 +70,7 @@ func (sim *GobotSimulator) MapKeyPressToGPIOAction(key rune, pin string, action 
 	sim.logger.Debug("Mapping key %s to pin %s", strconv.QuoteRune(key), pin)
 
 	// translate pin to gpio num and map it so we know it is used
-	gpioPin, pinErr := sim.pinToGPIO.ToGPIO(pin)
+	gpioPin, pinErr := sim.pinToGPIOMap.ToGPIO(pin)
 	if pinErr != nil {
 		return pinErr
 	}
@@ -93,7 +89,7 @@ func (sim *GobotSimulator) MapKeyPressToGPIOAction(key rune, pin string, action 
 func (sim *GobotSimulator) WatchPin(pin string, handler gobot_sim.PinChangedFunc) (*gobot_sim.PinWatcher, error) {
 
 	// translate pin to gpio num and map it so we know it is used
-	gpioPin, pinErr := sim.pinToGPIO.ToGPIO(pin)
+	gpioPin, pinErr := sim.pinToGPIOMap.ToGPIO(pin)
 	if pinErr != nil {
 
 		return nil, pinErr
