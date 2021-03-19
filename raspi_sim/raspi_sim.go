@@ -58,6 +58,8 @@ func (sim *GobotSimulator) enterSimulationMode() {
 	fs.AddMockablePath("/sys/class/gpio/export")
 	fs.AddMockablePath("/sys/class/gpio/unexport")
 	for gpioPinNum, _ := range sim.usedGPIOPins {
+		sim.logger.Debug("entersim - hooking into GPIO%s", gpioPinNum)
+
 		fs.AddMockablePath(fmt.Sprintf("/sys/class/gpio/gpio%s/direction", gpioPinNum))
 		fs.AddMockablePath(fmt.Sprintf("/sys/class/gpio/gpio%s/value", gpioPinNum))
 	}
@@ -71,8 +73,10 @@ func (sim *GobotSimulator) usePinForGPIO(pin string) error {
 	// translate pin to gpio num and map it so we know it is used
 	gpioPin, pinErr := sim.pinToGPIOMap.ToGPIO(pin)
 	if pinErr != nil {
+		sim.logger.Error("usepin  %s - no GPIO", pin)
 		return pinErr
 	}
+	sim.logger.Debug("usepin  %s - this is GPIO %s", pin, gpioPin)
 	sim.usedGPIOPins[gpioPin] = true
 	return nil
 }
@@ -94,7 +98,7 @@ func (sim *GobotSimulator) MapKeyPressToGPIOAction(key rune, pin string, action 
 
 // WatchPin intercepts writes to a pin and calls a function if the value changed
 func (sim *GobotSimulator) WatchPin(pin string, handler gobot_sim.PinChangedFunc) (*gobot_sim.PinWatcher, error) {
-	sim.logger.Debug("Add watcher for pin %s", pin)
+	sim.logger.Debug("add watcher for pin %s", pin)
 
 	usePinErr := sim.usePinForGPIO(pin)
 	if usePinErr != nil {
