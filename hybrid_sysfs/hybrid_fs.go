@@ -1,6 +1,7 @@
 package hybrid_sysfs
 
 import (
+	"github.com/rs/zerolog/log"
 	"gobot.io/x/gobot/sysfs"
 	"os"
 	"syscall"
@@ -59,7 +60,9 @@ func (hfs *HybridFs) Stat(name string) (os.FileInfo, error) {
 func (hfs *HybridFs) selectFs(name string) sysfs.Filesystem {
 	mockable, found := hfs.mockablePaths[name]
 	if found && mockable {
+		log.Trace().Str("path", name).Msg("delegate to mock fs")
 		return hfs.mockFs
 	}
+	log.Trace().Str("path", name).Msg("delegate to native fs")
 	return hfs.nativeFs
 }

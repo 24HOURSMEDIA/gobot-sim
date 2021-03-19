@@ -5,17 +5,21 @@
 package main
 
 import (
-	"fmt"
 	"github.com/24hoursmedia/gobot-sim"
 	"github.com/24hoursmedia/gobot-sim/raspi_sim"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"gobot.io/x/gobot"
 	"gobot.io/x/gobot/drivers/gpio"
 	"gobot.io/x/gobot/platforms/raspi"
+	"os"
 	"time"
 )
 
 func main() {
-	fmt.Println("Setting up simulator - watcher")
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+	log.Info().Msg("Setting up simulator - watcher")
 
 	ledPin := "11"
 
@@ -35,21 +39,18 @@ func main() {
 
 	// hook in the simulator.
 	sim := raspi_sim.NewGobotSimulator(r)
-	sim.Verbosity(gobot_sim.VERBOSITY_VVV)
 	// a simple watcher for the pin that on a real board has a led attached
 	sim.WatchPin(ledPin, func(ev gobot_sim.PinChangedEvent) error {
-		fmt.Println("LED BLINKS")
+		log.Info().Msg("LED BLINKS (1)")
 		return nil
 	})
 
 	// a more advanced, generic watcher
 	ledWatcher, _ := sim.WatchPin(ledPin, func(ev gobot_sim.PinChangedEvent) error {
 		source := ev.Source().(*gobot_sim.PinWatcher)
-		fmt.Printf("%s, pin %s, state = %d\n",
-			source.Name(),
-			ev.Pin,
-			ev.Value,
-		)
+		log.Info().Str("source", source.Name()).Str("pin", ev.Pin).Int("pinVal", ev.Value).
+			Msg("LED BLINKS (2)")
+
 		return nil
 	})
 	ledWatcher.SetName("LED blink watcher")

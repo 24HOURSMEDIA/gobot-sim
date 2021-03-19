@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/24hoursmedia/gobot-sim"
 	"github.com/24hoursmedia/gobot-sim/hybrid_sysfs"
+	"github.com/rs/zerolog/log"
 	"gobot.io/x/gobot"
 	"gobot.io/x/gobot/platforms/keyboard"
 	"gobot.io/x/gobot/platforms/raspi"
@@ -21,7 +22,6 @@ type GobotSimulator struct {
 	gpioWatchers  []*gobot_sim.PinWatcher
 	watchInterval time.Duration
 	usedGPIOPins  map[string]bool
-	logger        gobot_sim.VerbosityLogger
 }
 
 // NewGobotSimulator creates a bot that makes your machine
@@ -32,15 +32,10 @@ func NewGobotSimulator(adapter *raspi.Adaptor) *GobotSimulator {
 	sim.pinToGPIOMap = RPI3PinGPIOMap
 	sim.gpioKeymap = map[rune]*gobot_sim.PinWriteAction{}
 	sim.adapter = adapter
-	sim.logger.Prefix = sim.name + " "
-	sim.watchInterval = time.Millisecond * 10
+	sim.watchInterval = time.Millisecond * 20
 	sim.usedGPIOPins = make(map[string]bool)
+	log.Debug().Str("name", sim.name).Msg("Created new Gobot-Sim")
 	return sim
-}
-
-// Verbosity sets the verbosity level of messages to stdout
-func (sim *GobotSimulator) Verbosity(verbosity int) {
-	sim.logger.Verbosity = verbosity
 }
 
 // SetPinToGPIOMap sets a pin mapping to gpio numbers for the platform (defaults to RPI3 mapping).
@@ -58,8 +53,7 @@ func (sim *GobotSimulator) enterSimulationMode() {
 	fs.AddMockablePath("/sys/class/gpio/export")
 	fs.AddMockablePath("/sys/class/gpio/unexport")
 	for gpioPinNum, _ := range sim.usedGPIOPins {
-		sim.logger.Debug("entersim - hooking into GPIO%s", gpioPinNum)
-
+		log.Debug().Str("gpio", gpioPinNum).Msg("entersim - hooking into GPIO")
 		fs.AddMockablePath(fmt.Sprintf("/sys/class/gpio/gpio%s/direction", gpioPinNum))
 		fs.AddMockablePath(fmt.Sprintf("/sys/class/gpio/gpio%s/value", gpioPinNum))
 	}
@@ -73,10 +67,10 @@ func (sim *GobotSimulator) usePinForGPIO(pin string) error {
 	// translate pin to gpio num and map it so we know it is used
 	gpioPin, pinErr := sim.pinToGPIOMap.ToGPIO(pin)
 	if pinErr != nil {
-		sim.logger.Error("usepin  %s - no GPIO", pin)
+		log.Error().Str("pin", pin).Msg("entersim - hooking pin into GPIO")
 		return pinErr
 	}
-	sim.logger.Debug("usepin  %s - this is GPIO %s", pin, gpioPin)
+
 	sim.usedGPIOPins[gpioPin] = true
 	return nil
 }
@@ -84,7 +78,9 @@ func (sim *GobotSimulator) usePinForGPIO(pin string) error {
 // MapKeyPressToGPIOAction maps a key press to a specific action on a pin, for example
 // to turn it on or simulate a button press and release
 func (sim *GobotSimulator) MapKeyPressToGPIOAction(key rune, pin string, action int) (*gobot_sim.PinWriteAction, error) {
-	sim.logger.Debug("Mapping key %s to pin %s", strconv.QuoteRune(key), pin)
+	log.Debug().Str("pin", pin).Msg("entersim - hooking pin into GPIO")
+	log.Debug().Str("key", strconv.QuoteRune(key)).Str("pin", pin).
+		Msg("Mapping key")
 
 	usePinErr := sim.usePinForGPIO(pin)
 	if usePinErr != nil {
@@ -98,7 +94,7 @@ func (sim *GobotSimulator) MapKeyPressToGPIOAction(key rune, pin string, action 
 
 // WatchPin intercepts writes to a pin and calls a function if the value changed
 func (sim *GobotSimulator) WatchPin(pin string, handler gobot_sim.PinChangedFunc) (*gobot_sim.PinWatcher, error) {
-	sim.logger.Debug("add watcher for pin %s", pin)
+	log.Debug().Msgf("add watcher for pin %s", pin)
 
 	usePinErr := sim.usePinForGPIO(pin)
 	if usePinErr != nil {
@@ -137,20 +133,21 @@ func (sim *GobotSimulator) goRun() error {
 	keys := keyboard.NewDriver()
 	work := func() {
 		if len(sim.gpioKeymap) > 0 {
-			sim.logger.Debug("Setup keypress handlers")
+			log.Info().Msg("Setup keypress handlers")
 			keys.On(keyboard.Key, func(data interface{}) {
 				key := data.(keyboard.KeyEvent)
 				if action, ok := sim.gpioKeymap[rune(key.Key)]; ok {
-					sim.logger.Debug("Key %s pressed, Pin %s, Action %d", strconv.QuoteRune(rune(key.Key)), action.Pin(), action.Action())
+					log.Debug().Str("key", strconv.QuoteRune(rune(key.Key))).Str("pin", action.Pin()).
+						Int("action", action.Action()).Msg("Key pressed")
 					err := action.Execute()
 					if err != nil {
-						sim.logger.Error("Error %v", err)
+						log.Err(err).Msg("")
 					}
 				}
 			})
 		}
 		if len(sim.gpioWatchers) > 0 {
-			sim.logger.Debug("Setup watchers")
+			log.Info().Msg("Setup watchers")
 			gobot.Every(sim.watchInterval, func() {
 				for _, w := range sim.gpioWatchers {
 					w.Observe()
@@ -164,7 +161,7 @@ func (sim *GobotSimulator) goRun() error {
 		[]gobot.Device{keys},
 		work,
 	)
-	sim.logger.Info("Waiting for keypress")
+	log.Info().Msg("Waiting for keypress")
 	robot.Start()
 	return nil
 }
