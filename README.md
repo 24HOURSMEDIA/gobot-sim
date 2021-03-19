@@ -43,35 +43,32 @@ import (
 )
 
 func main() {
-	fmt.Println("Setting up simulator")
+  // set up rasberry pi gobot with a button attached to pin 11 (GPIO17)
+  r := raspi.NewAdaptor()
+  button := gpio.NewButtonDriver(r, "11", time.Millisecond*20)
+  work := func() {
+    button.On(gpio.ButtonPush, func(data interface{}) {
+      log.Info().Msg("button pressed")
+    })
+    button.On(gpio.ButtonRelease, func(data interface{}) {
+      log.Info().Msg("button released")
+    })
+  }
 
-	// set up rasberry pi gobot with a button attached to pin 11 (GPIO17)
-	r := raspi.NewAdaptor()
-	button := gpio.NewButtonDriver(r, "11", time.Millisecond*100)
-	work := func() {
-		button.On(gpio.ButtonPush, func(data interface{}) {
-			fmt.Println("button pressed")
-		})
-		button.On(gpio.ButtonRelease, func(data interface{}) {
-			fmt.Println("button released")
-		})
-	}
+  robot := gobot.NewRobot("buttonBot",
+    []gobot.Connection{r},
+    []gobot.Device{button},
+    work,
+  )
 
-	robot := gobot.NewRobot("buttonBot",
-		[]gobot.Connection{r},
-		[]gobot.Device{button},
-		work,
-	)
+  // hook in the simulator. It links keypress '1' to a simulation of a button press and release
+  // on pin 11 (GPIO 17)
+  sim := raspi_sim.NewGobotSimulator(r)
+  sim.AddKeyPressPWAction('1', "11", gobot_sim.PW_ACTION_BUTTONPRESS)
+  sim.Run()
 
-	// hook in the simulator. It links keypress '1' to a simulation of a button press and release
-	// on pin 11 (GPIO 17)
-	sim := raspi_sim.NewGobotSimulator(r)
-	sim.Verbosity(gobot_sim.VERBOSITY_VVV)
-	sim.MapKeyPressToGPIOAction('1', "11", gobot_sim.PWACTION_BUTTONPRESS)
-	sim.Run()
-
-	// start the 'real' robot
-	robot.Start()
+  // start the 'real' robot
+  robot.Start()
 }
 ```
 
