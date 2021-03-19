@@ -53,8 +53,7 @@ func main() {
 		return nil
 	})
 	ledWatcher.SetName("LED blink watcher")
-	sim.EnterSimulationMode()
-	go sim.Run()
+	sim.Run()
 
 	// start the 'real' robot
 	robot.Start()

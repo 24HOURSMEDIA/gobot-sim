@@ -118,6 +118,14 @@ func (sim *GobotSimulator) pinRead(pin string) (int, error) {
 
 // Run sets up the simulator bot and starts it
 func (sim *GobotSimulator) Run() error {
+	sim.EnterSimulationMode()
+	go sim.goRun()
+	return nil
+}
+
+// goRun is the go routine for running
+func (sim *GobotSimulator) goRun() error {
+
 	keys := keyboard.NewDriver()
 	work := func() {
 		if len(sim.gpioKeymap) > 0 {
