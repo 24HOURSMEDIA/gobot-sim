@@ -41,7 +41,7 @@ func main() {
 	// hook in the simulator. It links keypress '1' to a simulation of a button press and release
 	// on pin 11 (GPIO 17)
 	sim := raspi_sim.NewGobotSimulator(r)
-	sim.MapKeyPressToGPIOAction('1', "11", gobot_sim.PWACTION_BUTTONPRESS)
+	sim.AddKeyPressPWAction('1', "11", gobot_sim.PW_ACTION_BUTTONPRESS)
 	sim.Run()
 
 	// start the 'real' robot

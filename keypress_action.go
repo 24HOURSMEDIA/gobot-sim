@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	PWACTION_UNDEFINED = iota
-	PWACTION_ON
-	PWACTION_OFF
-	PWACTION_TOGGLE
-	PWACTION_BUTTONPRESS
+	PW_ACTION_UNDEFINED = iota
+	PW_ACTION_ON
+	PW_ACTION_OFF
+	PW_ACTION_TOGGLE
+	PW_ACTION_BUTTONPRESS
 )
 
 type PinFuncs struct {
@@ -43,7 +43,7 @@ func (ac PinWriteAction) Pin() string {
 	return ac.pin
 }
 
-// Pin returns the action constant (i.e. PWACTION_TOGGLE etc)
+// Action returns the action constant (i.e. PWACTION_TOGGLE etc)
 func (ac PinWriteAction) Action() int {
 	return ac.action
 }
@@ -52,11 +52,11 @@ func (ac PinWriteAction) Action() int {
 // a pin must be executed
 func (ac *PinWriteAction) Execute() error {
 	switch ac.action {
-	case PWACTION_ON:
+	case PW_ACTION_ON:
 		return ac.pinFuncs.Write(ac.pin, ac.onValue)
-	case PWACTION_OFF:
+	case PW_ACTION_OFF:
 		return ac.pinFuncs.Write(ac.pin, ac.offValue)
-	case PWACTION_TOGGLE:
+	case PW_ACTION_TOGGLE:
 		val, _ := ac.pinFuncs.Read(ac.pin)
 		//if err != nil {
 		//	return err
@@ -67,7 +67,7 @@ func (ac *PinWriteAction) Execute() error {
 			return ac.pinFuncs.Write(ac.pin, ac.onValue)
 		}
 		return ac.pinFuncs.Write(ac.pin, ac.offValue)
-	case PWACTION_BUTTONPRESS:
+	case PW_ACTION_BUTTONPRESS:
 		ac.pinFuncs.Write(ac.pin, ac.onValue)
 		time.Sleep(time.Millisecond * 300)
 		return ac.pinFuncs.Write(ac.pin, ac.offValue)

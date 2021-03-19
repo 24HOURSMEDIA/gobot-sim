@@ -1,7 +1,6 @@
 package raspi_sim
 
 import (
-	"errors"
 	"fmt"
 	"github.com/24hoursmedia/gobot-sim"
 	"github.com/24hoursmedia/gobot-sim/hybrid_sysfs"
@@ -75,9 +74,10 @@ func (sim *GobotSimulator) usePinForGPIO(pin string) error {
 	return nil
 }
 
-// MapKeyPressToGPIOAction maps a key press to a specific action on a pin, for example
+// AddKeyPressPWAction writes something to a pin when a key is pressed.
+// It maps a key press to a specific action on a pin, for example
 // to turn it on or simulate a button press and release
-func (sim *GobotSimulator) MapKeyPressToGPIOAction(key rune, pin string, action int) (*gobot_sim.PinWriteAction, error) {
+func (sim *GobotSimulator) AddKeyPressPWAction(key rune, pin string, action int) (*gobot_sim.PinWriteAction, error) {
 	log.Debug().Str("pin", pin).Msg("entersim - hooking pin into GPIO")
 	log.Debug().Str("key", strconv.QuoteRune(key)).Str("pin", pin).
 		Msg("Mapping key")
@@ -125,7 +125,7 @@ func (sim *GobotSimulator) Run() error {
 }
 
 func Stop() error {
-	return errors.New("Not supported")
+	return nil
 }
 
 // goRun is the go routine for running
@@ -133,7 +133,7 @@ func (sim *GobotSimulator) goRun() error {
 	keys := keyboard.NewDriver()
 	work := func() {
 		if len(sim.gpioKeymap) > 0 {
-			log.Info().Msg("Setup keypress handlers")
+			log.Debug().Int("count", len(sim.gpioKeymap)).Msg("Setup keypress handlers")
 			keys.On(keyboard.Key, func(data interface{}) {
 				key := data.(keyboard.KeyEvent)
 				if action, ok := sim.gpioKeymap[rune(key.Key)]; ok {
@@ -161,7 +161,10 @@ func (sim *GobotSimulator) goRun() error {
 		[]gobot.Device{keys},
 		work,
 	)
-	log.Info().Msg("Waiting for keypress")
+	log.Info().
+		Int("num_pin_watchers", len(sim.gpioWatchers)).
+		Int("num_keypress_watchers", len(sim.gpioKeymap)).
+		Msg("Simulator ready")
 	robot.Start()
 	return nil
 }
