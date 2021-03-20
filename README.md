@@ -2,6 +2,9 @@
 
 **Simulate GPIO for [Gobot](https://gobot.io) with your keyboard and your own code**  
 
+
+github: https://github.com/24HOURSMEDIA/gobot-sim
+
 * Log keystrokes to send vitual pin inputs to your Gobot application  
   (your keyboard replaces an IN pin)
 * Hook into OUT pins so they pass through your code instead of the hardware  
